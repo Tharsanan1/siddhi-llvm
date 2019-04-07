@@ -91,10 +91,11 @@ void ExecutionElement::executeQuery_input(SiddhiqlParser::Query_inputContext *ct
                 }
             }
         }
+        resolveFilter(ctx->standard_stream()->basic_source_stream_handlers(0));
+        }
     }
     // need to implement methods for other input types like anonymous types
 
-}
 
 void ExecutionElement::executeQuery_output(SiddhiqlParser::Query_outputContext *ctx){
     if(ctx->INSERT()){
@@ -124,6 +125,7 @@ void ExecutionElement::executeQuery_section(SiddhiqlParser::Query_sectionContext
     methodForSetReference.returnType = "void";
     methodForSetReference.identifier = "execute";
     for (int i = 0; i < ctx->output_attribute().size(); i++) {
+        methodForSetReference.addLine("if(isFiltered()){");
         if(ctx->output_attribute(i)->attribute_reference()){
             string referenceName =
                     ctx->output_attribute(i)->attribute_reference()->attribute_name()->name()->id()->getText();
@@ -170,6 +172,7 @@ void ExecutionElement::executeQuery_section(SiddhiqlParser::Query_sectionContext
             attributeName[0] = toupper(attributeName[0]);
             methodForSetReference.addLine("\toutputSource.set" + attributeName + "(" + methodName + ");");
         }
+        methodForSetReference.addLine("}");
     }
     executionHeader.publicMembers.publicMethods.push_back(methodForSetReference);
 }
@@ -180,7 +183,7 @@ string ExecutionElement::resolveMathOperation(SiddhiqlParser::Math_operationCont
         Method method;
         method.identifier = ctx->function_operation()->function_id()->name()->id()->getText() + "_" + to_string(i) + "_"
                             + to_string(count);
-        count += 1;
+
         method.returnType = returnType;
         method.addLine("\n" + FunctionCreation::createMethodLineForFunction(
                 ctx->function_operation()->function_id()->getText(),
@@ -215,7 +218,23 @@ string ExecutionElement::resolveMathOperation(SiddhiqlParser::Math_operationCont
         }
 
 
+
         executionHeader.publicMembers.publicMethods.push_back(method);
         return method.identifier + "()";
+    }
+    else if(ctx->attribute_reference()){
+        return ctx->getText();
+    }
+    else if(ctx->constant_value()){
+        return ctx->getText();
+    }
+}
+
+void ExecutionElement::resolveFilter(SiddhiqlParser::Basic_source_stream_handlersContext* ctx){
+    Method method;
+    method.identifier = "isFiltered";
+    method.returnType = "bool";
+    if(ctx->basic_source_stream_handler(0)->filter()){
+        method.addLine("return (" + ctx->basic_source_stream_handler(0)->filter()->expression()->math_operation()->math_operation(0)->getText() + " " + ctx->basic_source_stream_handler(0)->filter()->expression()->math_operation()->math_operation(1)->getText() + " " + ctx->basic_source_stream_handler(0)->filter()->expression()->math_operation()->math_operation(2)->getText() + ")");
     }
 }

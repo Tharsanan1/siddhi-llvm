@@ -39,6 +39,7 @@ public:
     ClassCreator mainFile;
     Method mainMethod;
     vector<string> created_attribute_refs;
+    void resolveFilter(SiddhiqlParser::Basic_source_stream_handlersContext* ctx);
 };
 
 

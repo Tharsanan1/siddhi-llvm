@@ -13,6 +13,7 @@ limitations under the License.
 
 #include <iostream>
 #include <fstream>
+#include <thread>
 #include "antlr4-runtime.h"
 #include "SiddhiqlLexer.h"
 #include "SiddhiqlParser.h"
@@ -20,50 +21,75 @@ limitations under the License.
 #include "Translator.h"
 #include "TranslatorVisitor.h"
 #include "KafkaConsumer.h"
+#include "queue"
+
+#include "input/Consumer.h"
+#include "input/Producer.h"
+//#include "buffer/BufferGenericQueue.cpp"
+
 using namespace antlrcpp;
 using namespace antlr4;
 using namespace std;
 
+BufferGenericQueue<int> q;
+
+void thread_func_consumer(){
+    Consumer consumer(&q);
+    consumer.run();
+}
+void thread_func_producer(){
+    Producer producer(&q);
+    producer.run();
+}
 
 int main ( int argc, const char *args[]){
-    ifstream stream;
-    stream.open("/home/tharsanan/Tharsanan/FYP/siddhi-llvm/sample.exec");
-    ANTLRInputStream input(stream);
-    SiddhiqlLexer lexer(&input);
-    CommonTokenStream tokens(&lexer);
-    SiddhiqlParser parser(&tokens);
-    string a;
-    std::ifstream infile("/home/tharsanan/Tharsanan/FYP/siddhi-llvm/LICENSE");
-    char str[255];
-    while (infile >> a )
-    {
-        cout << a <<"\n";
-        // process pair (a,b)
-    }
-    tree::ParseTree *Tree = parser.siddhi_app();
-    Translator listener;
 
-    ifstream stream1;
-    stream1.open("/home/tharsanan/Tharsanan/FYP/siddhi-llvm/sample.exec");
-    ANTLRInputStream input1(stream1);
-    SiddhiqlLexer lexer1(&input1);
-    CommonTokenStream tokens1(&lexer1);
-    SiddhiqlParser parser1(&tokens1);
-    TranslatorVisitor translatorVisitor;
-    cout << "\n visiting starts \n";
-    SiddhiqlParser :: Siddhi_appContext * visitTree = parser1.siddhi_app();
-    translatorVisitor.visitSiddhi_app(visitTree);
+    q.push(1);
 
-    std::cout << "AppName : " << translatorVisitor.appName;
-    std::cout << "Annotation : " << TranslatorVisitor::definitionStreams[1].annotation.getName();
-    string commonIncludeLines;
-    for (int i = 0; i < TranslatorVisitor::commonIncludes.size(); i++) {
-        commonIncludeLines += "#include\"" + TranslatorVisitor::commonIncludes[i] + "\n";
-    }
-    commonIncludeLines += "#include <iostream>\n";
-    commonIncludeLines += "using namespace std;\n";
-    ofstream headerFile("/home/tharsanan/Tharsanan/FYP/siddhi-llvm/Generated_SP/common.h");
-    headerFile << commonIncludeLines;
-    headerFile.close();
+    thread threadCons(thread_func_consumer);
+    thread threadProd(thread_func_producer);
+    threadCons.join();
+    threadProd.join();
+
+//    ifstream stream;
+//    cout << args[1];
+//    stream.open("/home/tharsanan/Tharsanan/FYP/siddhi-llvm/sample.exec");
+//    ANTLRInputStream input(stream);
+//    SiddhiqlLexer lexer(&input);
+//    CommonTokenStream tokens(&lexer);
+//    SiddhiqlParser parser(&tokens);
+//    string a;
+//    std::ifstream infile("/home/tharsanan/Tharsanan/FYP/siddhi-llvm/LICENSE");
+//    char str[255];
+//    while (infile >> a )
+//    {
+//        cout << a <<"\n";
+//        // process pair (a,b)
+//    }
+//    tree::ParseTree *Tree = parser.siddhi_app();
+//    Translator listener;
+//
+//    ifstream stream1;
+//    stream1.open("/home/tharsanan/Tharsanan/FYP/siddhi-llvm/sample.exec");
+//    ANTLRInputStream input1(stream1);
+//    SiddhiqlLexer lexer1(&input1);
+//    CommonTokenStream tokens1(&lexer1);
+//    SiddhiqlParser parser1(&tokens1);
+//    TranslatorVisitor translatorVisitor;
+//    cout << "\n visiting starts \n";
+//    SiddhiqlParser :: Siddhi_appContext * visitTree = parser1.siddhi_app();
+//    translatorVisitor.visitSiddhi_app(visitTree);
+//
+//    std::cout << "AppName : " << translatorVisitor.appName;
+//    std::cout << "Annotation : " << TranslatorVisitor::definitionStreams[1].annotation.getName();
+//    string commonIncludeLines;
+//    for (int i = 0; i < TranslatorVisitor::commonIncludes.size(); i++) {
+//        commonIncludeLines += "#include\"" + TranslatorVisitor::commonIncludes[i] + "\n";
+//    }
+//    commonIncludeLines += "#include <iostream>\n";
+//    commonIncludeLines += "using namespace std;\n";
+//    ofstream headerFile("/home/tharsanan/Tharsanan/FYP/siddhi-llvm/Generated_SP/common.h");
+//    headerFile << commonIncludeLines;
+//    headerFile.close();
     return 0;
 }
